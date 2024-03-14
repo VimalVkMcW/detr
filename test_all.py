@@ -167,7 +167,7 @@ class ONNXExporterTester(unittest.TestCase):
         outputs = list(map(to_numpy, outputs))
 
         ort_session = onnxruntime.InferenceSession(onnx_io.getvalue())
-        # compute onnxruntime output prediction
+        # compute onnxruntime output prediction 
         ort_inputs = dict((ort_session.get_inputs()[i].name, inpt) for i, inpt in enumerate(inputs))
         ort_outs = ort_session.run(None, ort_inputs)
         for i, element in enumerate(outputs):
@@ -178,6 +178,7 @@ class ONNXExporterTester(unittest.TestCase):
                     self.assertIn("(0.00%)", str(error), str(error))
                 else:
                     raise
+
             print("Expected Output:", element)
             print("ONNX Output:", ort_outs[i])
 
