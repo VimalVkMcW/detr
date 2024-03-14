@@ -130,15 +130,16 @@ class ONNXExporterTester(unittest.TestCase):
         torch.manual_seed(123)
 
     def run_model(self, model, inputs_list, tolerate_small_mismatch=False, do_constant_folding=True, dynamic_axes=None,
-                  output_names=None, input_names=None):
+              output_names=None, input_names=None):
         model.eval()
 
         onnx_io = io.BytesIO()
         # export to onnx with the first input
         torch.onnx.export(model, inputs_list[0], onnx_io,
-                          do_constant_folding=do_constant_folding, opset_version=12,
-                          dynamic_axes=dynamic_axes, input_names=input_names, output_names=output_names)
+                        do_constant_folding=do_constant_folding, opset_version=12,
+                        dynamic_axes=dynamic_axes, input_names=input_names, output_names=output_names)
         # validate the exported model with onnx runtime
+        outputs = []
         for test_inputs in inputs_list:
             with torch.no_grad():
                 if isinstance(test_inputs, torch.Tensor) or isinstance(test_inputs, list):
@@ -150,7 +151,10 @@ class ONNXExporterTester(unittest.TestCase):
             print("Test Inputs:", test_inputs)
             print("Expected Outputs:", test_ouputs)
             print("Exported ONNX Model:")
+            outputs.append(test_ouputs)
             self.ort_validate(onnx_io, test_inputs, test_ouputs, tolerate_small_mismatch)
+    
+        return outputs
 
     def ort_validate(self, onnx_io, inputs, outputs, tolerate_small_mismatch=False):
 
@@ -201,8 +205,8 @@ class ONNXExporterTester(unittest.TestCase):
         pred_boxes = outputs[0]["pred_boxes"]
 
         # Assume you have ground truth boxes and labels available
-        target_boxes = torch.rand(5, 4)  # Example ground truth boxes
-        target_labels = torch.randint(1, 91, (5,))  # Example ground truth labels
+        target_boxes = torch.rand(5, 4)  
+        target_labels = torch.randint(1, 91, (5,))  
 
         # Calculate boxAP
         boxAP = self.compute_boxAP(pred_boxes, pred_logits.sigmoid(), pred_logits.argmax(-1), target_boxes, target_labels)
