@@ -156,7 +156,10 @@ class ONNXExporterTester(unittest.TestCase):
         iou_matrix = np.zeros((len(pred_boxes_np), len(target_boxes_np)))
         for i in range(len(pred_boxes_np)):
             for j in range(len(target_boxes_np)):
-                iou_matrix[i, j] = self.calculate_iou(pred_boxes_np[i], target_boxes_np[j])
+                # Extract individual coordinates
+                box1 = pred_boxes_np[i]
+                box2 = target_boxes_np[j]
+                iou_matrix[i, j] = self.calculate_iou(box1, box2)
 
         # Initialize variables to store true positives, false positives, and false negatives
         tp = 0
