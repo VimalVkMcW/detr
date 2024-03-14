@@ -1,6 +1,6 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import io
 import unittest
+import numpy as np
 
 import torch
 from torch import nn, Tensor
@@ -129,15 +129,124 @@ class ONNXExporterTester(unittest.TestCase):
     def setUpClass(cls):
         torch.manual_seed(123)
 
+    def compute_boxAP(self, pred_boxes, pred_logits_sigmoid, pred_logits_argmax, target_boxes, target_labels, iou_threshold=0.5):
+        """
+        Compute the box Average Precision (AP) given the predicted boxes and logits, and the target boxes and labels.
+        
+        Args:
+        - pred_boxes: Predicted bounding boxes (Tensor), shape (N, 4), where N is the number of predicted boxes.
+        - pred_logits_sigmoid: Sigmoid of predicted logits (Tensor), shape (N, num_classes), where num_classes is the number of classes.
+        - pred_logits_argmax: Argmax of predicted logits (Tensor), shape (N,), representing the predicted class for each box.
+        - target_boxes: Target bounding boxes (Tensor), shape (M, 4), where M is the number of target boxes.
+        - target_labels: Target labels (Tensor), shape (M,), representing the class for each target box.
+        - iou_threshold: IoU threshold for matching predicted and target boxes.
+
+        Returns:
+        - boxAP: Box Average Precision (float)
+        """
+
+        # Convert tensors to numpy arrays
+        pred_boxes_np = pred_boxes.cpu().numpy()
+        pred_logits_sigmoid_np = pred_logits_sigmoid.cpu().numpy()
+        pred_logits_argmax_np = pred_logits_argmax.cpu().numpy()
+        target_boxes_np = target_boxes.cpu().numpy()
+        target_labels_np = target_labels.cpu().numpy()
+
+        # Calculate IoU matrix between predicted boxes and target boxes
+        iou_matrix = np.zeros((len(pred_boxes_np), len(target_boxes_np)))
+        for i in range(len(pred_boxes_np)):
+            for j in range(len(target_boxes_np)):
+                iou_matrix[i, j] = self.calculate_iou(pred_boxes_np[i], target_boxes_np[j])
+
+        # Initialize variables to store true positives, false positives, and false negatives
+        tp = 0
+        fp = 0
+        fn = 0
+
+        # Match predicted boxes to target boxes using the Hungarian algorithm
+        matched_indices = self.hungarian_matching(iou_matrix)
+
+        # Loop through each matched pair of indices
+        for pred_idx, target_idx in matched_indices:
+            # Check if the IoU is above the threshold and the predicted class matches the target class
+            if iou_matrix[pred_idx, target_idx] >= iou_threshold and pred_logits_argmax_np[pred_idx] == target_labels_np[target_idx]:
+                tp += 1  # True positive
+            else:
+                fp += 1  # False positive
+
+        # Calculate false negatives by subtracting true positives from the total number of target boxes
+        fn = len(target_boxes_np) - tp
+
+        # Calculate precision and recall
+        precision = tp / (tp + fp) if tp + fp > 0 else 0
+        recall = tp / (tp + fn) if tp + fn > 0 else 0
+
+        # Calculate Average Precision (AP)
+        # For simplicity, let's assume AP is just precision at this stage
+        boxAP = precision
+
+        return boxAP
+
+    def calculate_iou(self, box1, box2):
+        """
+        Calculate the Intersection over Union (IoU) between two bounding boxes.
+
+        Args:
+        - box1: Bounding box coordinates (xmin, ymin, xmax, ymax)
+        - box2: Bounding box coordinates (xmin, ymin, xmax, ymax)
+
+        Returns:
+        - iou: Intersection over Union (IoU) between the two boxes
+        """
+        # Calculate intersection coordinates
+        xmin_inter = max(box1[0], box2[0])
+        ymin_inter = max(box1[1], box2[1])
+        xmax_inter = min(box1[2], box2[2])
+        ymax_inter = min(box1[3], box2[3])
+
+        # Calculate intersection area
+        intersection_area = max(0, xmax_inter - xmin_inter) * max(0, ymax_inter - ymin_inter)
+
+        # Calculate area of each box
+        box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+        box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+        # Calculate union area
+        union_area = box1_area + box2_area - intersection_area
+
+        # Calculate IoU
+        iou = intersection_area / union_area if union_area > 0 else 0
+
+        return iou
+
+    def hungarian_matching(self, iou_matrix):
+        """
+        Perform matching between predicted boxes and target boxes using the Hungarian algorithm.
+
+        Args:
+        - iou_matrix: Matrix containing IoU scores between predicted boxes and target boxes
+
+        Returns:
+        - matched_indices: List of matched indices [(pred_idx, target_idx)]
+        """
+        # Perform Hungarian matching using scipy.optimize.linear_sum_assignment
+        from scipy.optimize import linear_sum_assignment
+        pred_indices, target_indices = linear_sum_assignment(-iou_matrix)  # Minimize negative IoU for maximization
+
+        # Create list of matched indices
+        matched_indices = [(pred_idx, target_idx) for pred_idx, target_idx in zip(pred_indices, target_indices)]
+
+        return matched_indices
+
     def run_model(self, model, inputs_list, tolerate_small_mismatch=False, do_constant_folding=True, dynamic_axes=None,
-              output_names=None, input_names=None):
+                  output_names=None, input_names=None):
         model.eval()
 
         onnx_io = io.BytesIO()
         # export to onnx with the first input
         torch.onnx.export(model, inputs_list[0], onnx_io,
-                        do_constant_folding=do_constant_folding, opset_version=12,
-                        dynamic_axes=dynamic_axes, input_names=input_names, output_names=output_names)
+                          do_constant_folding=do_constant_folding, opset_version=12,
+                          dynamic_axes=dynamic_axes, input_names=input_names, output_names=output_names)
         # validate the exported model with onnx runtime
         outputs = []
         for test_inputs in inputs_list:
@@ -153,7 +262,7 @@ class ONNXExporterTester(unittest.TestCase):
             print("Exported ONNX Model:")
             outputs.append(test_ouputs)
             self.ort_validate(onnx_io, test_inputs, test_ouputs, tolerate_small_mismatch)
-    
+        
         return outputs
 
     def ort_validate(self, onnx_io, inputs, outputs, tolerate_small_mismatch=False):
