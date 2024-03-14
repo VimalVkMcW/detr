@@ -146,6 +146,10 @@ class ONNXExporterTester(unittest.TestCase):
                 test_ouputs = model(*test_inputs)
                 if isinstance(test_ouputs, torch.Tensor):
                     test_ouputs = (test_ouputs,)
+
+            print("Test Inputs:", test_inputs)
+            print("Expected Outputs:", test_ouputs)
+            print("Exported ONNX Model:")
             self.ort_validate(onnx_io, test_inputs, test_ouputs, tolerate_small_mismatch)
 
     def ort_validate(self, onnx_io, inputs, outputs, tolerate_small_mismatch=False):
@@ -174,6 +178,8 @@ class ONNXExporterTester(unittest.TestCase):
                     self.assertIn("(0.00%)", str(error), str(error))
                 else:
                     raise
+            print("Expected Output:", element)
+            print("ONNX Output:", ort_outs[i])
 
     def test_model_onnx_detection(self):
         model = detr_resnet50(pretrained=False).eval()
@@ -181,13 +187,29 @@ class ONNXExporterTester(unittest.TestCase):
         model(dummy_image)
 
         # Test exported model on images of different size, or dummy input
-        self.run_model(
+        outputs = self.run_model(
             model,
             [(torch.rand(1, 3, 750, 800),)],
             input_names=["inputs"],
             output_names=["pred_logits", "pred_boxes"],
             tolerate_small_mismatch=True,
         )
+
+        # Extract relevant outputs
+        pred_logits = outputs[0]["pred_logits"]
+        pred_boxes = outputs[0]["pred_boxes"]
+
+        # Assume you have ground truth boxes and labels available
+        target_boxes = torch.rand(5, 4)  # Example ground truth boxes
+        target_labels = torch.randint(1, 91, (5,))  # Example ground truth labels
+
+        # Calculate boxAP
+        boxAP = self.compute_boxAP(pred_boxes, pred_logits.sigmoid(), pred_logits.argmax(-1), target_boxes, target_labels)
+        
+        print("BoxAP:", boxAP)
+
+        # Assert if required
+        self.assertTrue(boxAP > 0.5) 
 
     @unittest.skip("CI doesn't have enough memory")
     def test_model_onnx_detection_panoptic(self):
