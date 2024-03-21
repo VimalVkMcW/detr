@@ -91,7 +91,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         )
 
     model = onnx.load(model)
-    shape_dict = {"input": (1,3,640,640)}
+    shape_dict = {"input.1": (1,35)}
     mod, params = relay.frontend.from_onnx(model, shape_dict)
     target = "llvm -mcpu=core-avx2"
     with tvm.transform.PassContext(opt_level=2):
