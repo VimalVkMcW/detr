@@ -91,12 +91,14 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         )
 
     model = onnx.load(model)
-    shape_dict = {"samples": (1,3,640,640)}
+    input_name = "input"
+    shape_dict = {input_name: (1,3,640,640)}
     mod, params = relay.frontend.from_onnx(model, shape_dict)
-    target = "llvm -mcpu=core-avx2"
-    with tvm.transform.PassContext(opt_level=3):
-            executor = relay.build_module.create_executor("graph", mod, tvm.cpu(0), target, params).evaluate()
 
+    with tvm.transform.PassContext(opt_level=1):
+        executor = relay.build_module.create_executor(
+            "graph", mod, tvm.cpu(0), target, params
+        ).evaluate()
     count = 0
     for samples, targets in tqdm(data_loader):
         samples = samples.to(device)
