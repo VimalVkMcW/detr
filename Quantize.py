@@ -26,10 +26,10 @@ class OnnxStaticQuantization:
     def quantization(self, fp32_onnx_path, future_int8_onnx_path, calib_method, calibration_loader, sample=100):
         self.sample = sample
         self.calibration_loader = calibration_loader
-        _ = ort.quantization.quantize_static(
+        _ = onnxruntime.quantization.quantize_static(
                 model_input=fp32_onnx_path,
                 model_output=future_int8_onnx_path,
-                activation_type=ort.quantization.QuantType.QInt16, weight_type=ort.quantization.QuantType.QInt8,
+                activation_type=onnxruntime.quantization.QuantType.QInt16, weight_type=onnxruntime.quantization.QuantType.QInt8,
                 calibrate_method=self.calibration_technique[calib_method],
                 calibration_data_reader=self
             )
