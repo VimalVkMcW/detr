@@ -13,6 +13,10 @@ import util.misc as utils
 from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
 
+import onnx
+import tvm 
+from tvm import relay
+import numpy
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -66,7 +70,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 @torch.no_grad()
 def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
-    model.eval()
+    # model.eval()
     criterion.eval()
 
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -85,11 +89,23 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             output_dir=os.path.join(output_dir, "panoptic_eval"),
         )
 
+    model = onnx.load(model)
+    shape_dict = {"samples": (1,3,224,224)}
+    mod, params = relay.frontend.from_onnx(model, shape_dict)
+    target = "llvm -mcpu=core-avx2"
+    with tvm.transform.PassContext(opt_level=2):
+            executor = relay.build_module.create_executor("graph", mod, tvm.cpu(0), target, params).evaluate()
+
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+        
+        samples = tvm.nd.array(samples.astype("float32"))
+        outputs = [executor(samples).numpy()]
+        
+        # outputs = model(samples)
 
-        outputs = model(samples)
+
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
 

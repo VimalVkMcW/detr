@@ -103,6 +103,7 @@ def resize(image, target, size, max_size=None):
             return get_size_with_aspect_ratio(image_size, size, max_size)
 
     size = get_size(image.size, size, max_size)
+    size = (640,640)
     rescaled_image = F.resize(image, size)
 
     if target is None:
