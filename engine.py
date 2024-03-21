@@ -15,9 +15,12 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 import onnx
 import tvm 
-import tvm.relay as relay
+# import tvm.relay as relay
+from tvm import relay
 import numpy
 from tqdm import tqdm
+from onnx import numpy_helper
+
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -90,15 +93,18 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             output_dir=os.path.join(output_dir, "panoptic_eval"),
         )
 
-    model = onnx.load(model)
+
+
+    model = onnx.load_model(model)
     input_name = "samples"
     shape_dict = {input_name: (1,3,640,640)}
     mod, params = relay.frontend.from_onnx(model, shape_dict)
 
-    with tvm.transform.PassContext(opt_level=1):
+    with tvm.transform.PassContext(opt_level=2):
         executor = relay.build_module.create_executor(
             "graph", mod, tvm.cpu(0), target, params
         ).evaluate()
+
     count = 0
     for samples, targets in tqdm(data_loader):
         samples = samples.to(device)
