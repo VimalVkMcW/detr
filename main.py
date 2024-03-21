@@ -186,7 +186,7 @@ def main(args):
     if args.eval:
         
 
-
+        import onnxruntime
         from onnxruntime import quantization
         onnxruntime.quantization.shape_inference.quant_pre_process("detr-rs50.onnx", "Preprocess50.onnx")
         module = OnnxStaticQuantization()
