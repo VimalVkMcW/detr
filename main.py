@@ -199,7 +199,7 @@ def main(args):
         #     sample=100
         # )
 
-        model ="/kaggle/working/DETR_RS50.onnx"
+        model ="/kaggle/working/DETRint8.onnx"
         # model = "detrint8.onnx"
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
                                               data_loader_val, base_ds, device, args.output_dir)

@@ -15,7 +15,7 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 import onnx
 import tvm 
-from tvm import relay
+import tvm.relay as relay
 import numpy
 from tqdm import tqdm
 
