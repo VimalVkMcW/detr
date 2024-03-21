@@ -94,7 +94,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     shape_dict = {"samples": (1,3,640,640)}
     mod, params = relay.frontend.from_onnx(model, shape_dict)
     target = "llvm -mcpu=core-avx2"
-    with tvm.transform.PassContext(opt_level=2):
+    with tvm.transform.PassContext(opt_level=3):
             executor = relay.build_module.create_executor("graph", mod, tvm.cpu(0), target, params).evaluate()
 
     count = 0
@@ -102,6 +102,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         
+        samples = samples.numpy()
         samples = tvm.nd.array(samples.astype("float32"))
         outputs = [executor(samples).numpy()]
         print(outputs)
