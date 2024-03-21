@@ -17,7 +17,7 @@ class OnnxStaticQuantization:
             calib_list = []
             count = 0
             for nhwc_data, _ in self.calibration_loader:
-                nhwc_data=nhwc_data
+                nhwc_data=nhwc_data.tensors
                 calib_list.append({input_name: nhwc_data.numpy()})
                 if self.sample == count: break
                 count = count + 1
