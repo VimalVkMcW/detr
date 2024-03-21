@@ -186,20 +186,20 @@ def main(args):
     if args.eval:
         
 
-        import onnxruntime
-        from onnxruntime import quantization
-        onnxruntime.quantization.shape_inference.quant_pre_process("detr-rs50.onnx", "Preprocess50.onnx")
-        module = OnnxStaticQuantization()
-        module.fp32_onnx_path = "Preprocess50.onnx"
-        module.quantization(
-            fp32_onnx_path="Preprocess50.onnx",
-            future_int8_onnx_path="detrint8.onnx",
-            calib_method="MinMax",
-            calibration_loader=data_loader_val,
-            sample=100
-        )
-
-        model = "detrint8.onnx"
+        # import onnxruntime
+        # from onnxruntime import quantization
+        # onnxruntime.quantization.shape_inference.quant_pre_process("detr-rs50.onnx", "Preprocess50.onnx")
+        # module = OnnxStaticQuantization()
+        # module.fp32_onnx_path = "Preprocess50.onnx"
+        # module.quantization(
+        #     fp32_onnx_path="Preprocess50.onnx",
+        #     future_int8_onnx_path="detrint8.onnx",
+        #     calib_method="MinMax",
+        #     calibration_loader=data_loader_val,
+        #     sample=100
+        # )
+        model = "/kaggle/input/nit/onnx/1/1/nanogpt_int8.onnx"
+        # model = "detrint8.onnx"
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
                                               data_loader_val, base_ds, device, args.output_dir)
         if args.output_dir:
