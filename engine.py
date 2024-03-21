@@ -72,7 +72,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
     # model.eval()
     criterion.eval()
-
+    
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
     header = 'Test:'
@@ -90,7 +90,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         )
 
     model = onnx.load(model)
-    shape_dict = {"samples": (1,3,224,224)}
+    shape_dict = {"samples": (1,3,640,640)}
     mod, params = relay.frontend.from_onnx(model, shape_dict)
     target = "llvm -mcpu=core-avx2"
     with tvm.transform.PassContext(opt_level=2):
