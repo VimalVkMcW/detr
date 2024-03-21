@@ -188,7 +188,7 @@ def main(args):
 
 
         from onnxruntime import quantization
-        ort.quantization.shape_inference.quant_pre_process("detr-rs50.onnx", "Preprocess50.onnx")
+        onnxruntime.quantization.shape_inference.quant_pre_process("detr-rs50.onnx", "Preprocess50.onnx")
         module = OnnxStaticQuantization()
         module.fp32_onnx_path = "Preprocess50.onnx"
         module.quantization(
