@@ -16,6 +16,8 @@ from datasets import build_dataset, get_coco_api_from_dataset
 from engine import evaluate, train_one_epoch
 from models import build_model
 
+from Quantize import OnnxStaticQuantization
+
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
@@ -182,7 +184,22 @@ def main(args):
             args.start_epoch = checkpoint['epoch'] + 1
 
     if args.eval:
-        model = "detr-rs50.onnx"
+        
+
+
+        from onnxruntime import quantization
+        ort.quantization.shape_inference.quant_pre_process("detr-rs50.onnx", "Preprocess50.onnx")
+        module = OnnxStaticQuantization()
+        module.fp32_onnx_path = "Preprocess50.onnx"
+        module.quantization(
+            fp32_onnx_path="Preprocess50.onnx",
+            future_int8_onnx_path="detrint8.onnx",
+            calib_method="MinMax",
+            calibration_loader=data_loader_val,
+            sample=100
+        )
+
+        model = "detrint8.onnx"
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
                                               data_loader_val, base_ds, device, args.output_dir)
         if args.output_dir:
