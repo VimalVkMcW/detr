@@ -198,7 +198,7 @@ def main(args):
         #     calibration_loader=data_loader_val,
         #     sample=100
         # )
-        model = "/kaggle/input/nit/onnx/1/1/nanogpt_int8.onnx"
+        model = "/kaggle/working/detrint8.onnx"
         # model = "detrint8.onnx"
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
                                               data_loader_val, base_ds, device, args.output_dir)
