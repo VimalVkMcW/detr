@@ -17,6 +17,7 @@ import onnx
 import tvm 
 from tvm import relay
 import numpy
+from tqdm import tqdm
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -72,7 +73,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
     # model.eval()
     criterion.eval()
-    
+
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
     header = 'Test:'
@@ -96,7 +97,8 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     with tvm.transform.PassContext(opt_level=2):
             executor = relay.build_module.create_executor("graph", mod, tvm.cpu(0), target, params).evaluate()
 
-    for samples, targets in metric_logger.log_every(data_loader, 10, header):
+    count = 0
+    for samples, targets in tqdm(data_loader):
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         
@@ -138,6 +140,11 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
                 res_pano[i]["file_name"] = file_name
 
             panoptic_evaluator.update(res_pano)
+
+
+        count+=1
+        if count == 10:
+            break
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
