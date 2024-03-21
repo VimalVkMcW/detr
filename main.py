@@ -186,18 +186,18 @@ def main(args):
     if args.eval:
         
 
-        # import onnxruntime
-        # from onnxruntime import quantization
-        # onnxruntime.quantization.shape_inference.quant_pre_process("/kaggle/working/DETR_RS50.onnx", "Preprocess50.onnx")
-        # module = OnnxStaticQuantization()
-        # module.fp32_onnx_path = "Preprocess50.onnx"
-        # module.quantization(
-        #     fp32_onnx_path="Preprocess50.onnx",
-        #     future_int8_onnx_path="DETRint8.onnx",
-        #     calib_method="MinMax",
-        #     calibration_loader=data_loader_val,
-        #     sample=100
-        # )
+        import onnxruntime
+        from onnxruntime import quantization
+        onnxruntime.quantization.shape_inference.quant_pre_process("DETR_RS50.onnx", "Preprocess50.onnx")
+        module = OnnxStaticQuantization()
+        module.fp32_onnx_path = "Preprocess50.onnx"
+        module.quantization(
+            fp32_onnx_path="Preprocess50.onnx",
+            future_int8_onnx_path="DETRint8.onnx",
+            calib_method="MinMax",
+            calibration_loader=data_loader_val,
+            sample=100
+        )
 
         model ="/kaggle/working/DETRint8.onnx"
         # model = "detrint8.onnx"
