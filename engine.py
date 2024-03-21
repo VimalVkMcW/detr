@@ -91,7 +91,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         )
 
     model = onnx.load(model)
-    input_name = "input"
+    input_name = "samples"
     shape_dict = {input_name: (1,3,640,640)}
     mod, params = relay.frontend.from_onnx(model, shape_dict)
 
