@@ -1,17 +1,18 @@
+import onnxruntime
 from onnxruntime import quantization
 
 class OnnxStaticQuantization:
     def __init__(self) -> None:
         self.enum_data = None
         self.calibration_technique = {
-            "MinMax": ort.quantization.calibrate.CalibrationMethod.MinMax,
-            "Entropy": ort.quantization.calibrate.CalibrationMethod.Entropy,
-            "Percentile": ort.quantization.calibrate.CalibrationMethod.Percentile,
-            "Distribution": ort.quantization.calibrate.CalibrationMethod.Distribution
+            "MinMax": onnxruntime.quantization.calibrate.CalibrationMethod.MinMax,
+            "Entropy": onnxruntime.quantization.calibrate.CalibrationMethod.Entropy,
+            "Percentile": onnxruntime.quantization.calibrate.CalibrationMethod.Percentile,
+            "Distribution": onnxruntime.quantization.calibrate.CalibrationMethod.Distribution
         }
     def get_next(self, EP_list = ['CPUExecutionProvider']):
         if self.enum_data is None:
-            session = ort.InferenceSession(self.fp32_onnx_path, providers=EP_list)
+            session = onnxruntime.InferenceSession(self.fp32_onnx_path, providers=EP_list)
             input_name = session.get_inputs()[0].name
             calib_list = []
             count = 0
