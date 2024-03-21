@@ -188,7 +188,7 @@ def main(args):
 
         import onnxruntime
         from onnxruntime import quantization
-        onnxruntime.quantization.shape_inference.quant_pre_process("DETR_RS50.onnx", "Preprocess50.onnx")
+        onnxruntime.quantization.shape_inference.quant_pre_process("/kaggle/working/DETR_RS50.onnx", "Preprocess50.onnx")
         module = OnnxStaticQuantization()
         module.fp32_onnx_path = "Preprocess50.onnx"
         module.quantization(
